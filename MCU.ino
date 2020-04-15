@@ -16,7 +16,7 @@ int RF1Offset = 0;
 int RF2Offset = 0;
 int LB1Offset = 0;
 int LB2Offset = 0;
-int RB1Offset = 85;
+int RB1Offset =0;
 int RB2Offset = 0;
 
 const char* ssid = "FAST_513E";
@@ -91,7 +91,7 @@ JSONVar jsonData;
 
 
 //400
-const byte buffSize = 200;
+const byte buffSize =2000;
 char inputBuffer[buffSize];
 const char startMarker = '<';
 const char endMarker = '>';
@@ -106,25 +106,36 @@ void loop() {
 		while (client.connected()) {
 			//Serial.println("connected() ok");
 			while (client.available() > 0) {
-				//Serial.println("available() ok");
 				char x = client.read();
-				if (x == endMarker) {
-					readInProgress = false;
-					newDataFromPC = true;
-					inputBuffer[bytesRecvd] = 0;
-					parseData();
-				}
-				if (readInProgress) {
-					inputBuffer[bytesRecvd] = x;
-					bytesRecvd++;
-					if (bytesRecvd == buffSize) {
-						bytesRecvd = buffSize - 1;
-					}
-				}
 				if (x == startMarker) {
-					bytesRecvd = 0;
-					readInProgress = true;
+					client.readBytesUntil(endMarker, inputBuffer, buffSize);
+					parseData();
+					//client.flush();
+					//memset(inputBuffer, 0, buffSize);
 				}
+
+				//Serial.println("available() ok");
+				//char x = client.read();
+				//if (x == endMarker) {
+				//	readInProgress = false;
+				//	newDataFromPC = true;
+				//	inputBuffer[bytesRecvd] = 0;
+				//	parseData();
+				//	//reset
+				//	client.flush();
+				//	memset(inputBuffer, 0, buffSize);
+				//}
+				//if (readInProgress) {
+				//	inputBuffer[bytesRecvd] = x;
+				//	bytesRecvd++;
+				//	if (bytesRecvd == buffSize) {
+				//		bytesRecvd = buffSize - 1;
+				//	}
+				//}
+				//if (x == startMarker) {
+				//	bytesRecvd = 0;
+				//	readInProgress = true;
+				//}
 			}
 		}
 	}
