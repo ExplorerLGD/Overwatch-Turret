@@ -1,17 +1,14 @@
 from maya import cmds
 import json
 import time
-import serial
 import threading
 import maya.utils as utils
-import serial.tools.list_ports
+import socket
 #some settings --------
 frameRate=16
 times=[0,24]
 filePath='C:/Users/Administrator/Desktop/data.txt'
 
-serialPort="COM5"
-baudRate=115200
 sendRate=0.5
 isTest=True
 #----------------------
@@ -81,18 +78,23 @@ def getCurrentData():
    
 def sendData():
     cmds.progressWindow(isInterruptable=1)
-    ser=serial.Serial(serialPort,baudRate,timeout=0.5)
+    #client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    #client.connect(('192.168.0.100',6969))
     while 1 :
         if cmds.progressWindow(query=1, isCancelled=1) :
-            ser.close()
+            client.close()
             break
+        print "do something"
         data=utils.executeInMainThreadWithResult(getCurrentData)
-        ser.write("<"+data+">")
+        data="<"+data+">"
+        client.send(data)
         time.sleep(sendRate)
     cmds.progressWindow(endProgress=1)
 
   
 if isTest:
+    client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    client.connect(('192.168.0.100',9696))
     mythread=cThread()
     mythread.start()
     print "start"
