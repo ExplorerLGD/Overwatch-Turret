@@ -6,6 +6,7 @@
 
  #define TIMER_WIDTH 16
 #include <ESP32Servo.h>
+#include <WiFi.h>
 //#include <Servo.h>
 
 int HEADOffset = 0;
@@ -18,7 +19,10 @@ int LB2Offset = 0;
 int RB1Offset = 85;
 int RB2Offset = 0;
 
-
+const char* ssid = "FAST_513E";
+const char* password = "";
+const uint16_t port = 9696;
+WiFiServer wifiServer(port);
 
  Servo HEAD;
  Servo LF1;
@@ -30,10 +34,21 @@ int RB2Offset = 0;
  Servo RB1;
  Servo RB2;
  
-
 void setup() {
 	Serial.begin(115200);
+	delay(1000);
 
+	WiFi.begin(ssid, password);
+
+	while (WiFi.status() != WL_CONNECTED) {
+		delay(1000);
+		Serial.println("Connecting to WiFi..");
+	}
+
+	Serial.println("Connected to the WiFi network");
+	Serial.println(WiFi.localIP());
+
+	wifiServer.begin();
 
 	HEAD.setPeriodHertz(50);
 	LF1.setPeriodHertz(50);
@@ -74,9 +89,9 @@ void setup() {
 JSONVar jsonData;
 //int ret = 0;
 
-char inByte[20000];
-//String inByte="";
-const byte buffSize = 400;
+
+//400
+const byte buffSize = 200;
 char inputBuffer[buffSize];
 const char startMarker = '<';
 const char endMarker = '>';
@@ -85,25 +100,32 @@ boolean readInProgress = false;
 boolean newDataFromPC = false;
 
 void loop() {
-	while (Serial.available() > 0)
-	{
-		char x = Serial.read();
-		if (x == endMarker) {
-			readInProgress = false;
-			newDataFromPC = true;
-			inputBuffer[bytesRecvd] = 0;
-			parseData();
-		}
-		if (readInProgress) {
-			inputBuffer[bytesRecvd] = x;
-			bytesRecvd++;
-			if (bytesRecvd == buffSize) {
-				bytesRecvd = buffSize - 1;
+	WiFiClient client = wifiServer.available();
+	if (client) {
+		//Serial.println("client ok");
+		while (client.connected()) {
+			//Serial.println("connected() ok");
+			while (client.available() > 0) {
+				//Serial.println("available() ok");
+				char x = client.read();
+				if (x == endMarker) {
+					readInProgress = false;
+					newDataFromPC = true;
+					inputBuffer[bytesRecvd] = 0;
+					parseData();
+				}
+				if (readInProgress) {
+					inputBuffer[bytesRecvd] = x;
+					bytesRecvd++;
+					if (bytesRecvd == buffSize) {
+						bytesRecvd = buffSize - 1;
+					}
+				}
+				if (x == startMarker) {
+					bytesRecvd = 0;
+					readInProgress = true;
+				}
 			}
-		}
-		if (x == startMarker) {
-			bytesRecvd = 0;
-			readInProgress = true;
 		}
 	}
 }
