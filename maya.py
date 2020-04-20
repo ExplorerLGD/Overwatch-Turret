@@ -1,26 +1,34 @@
 from maya import cmds
 import json
 import time
+import thread
 import threading
 import maya.utils as utils
 import socket
 #some settings --------
 frameRate=16
-times=[0,24]
-filePath='C:/Users/Administrator/Desktop/data.txt'
+times=[0,23]
+filePath='E:/robot01/Program/UploadAnim/data/test.txt'
 
-sendRate=0.5
-isTest=True
+sendRate=0.03
+isTest=False
 #----------------------
 selection=cmds.ls(selection=True,long=True)
 
 def getKeyframe(selection):
     result=[]
     for obj in selection:
+        print obj
         a=cmds.keyframe(obj,time=(times[0],times[1]),query=True,timeChange=True)
+        print a
+        #如果没有K帧，则赋值0，防止NoneType
+        if(a==None):
+            a=[0.0]
+        #使用set求并集
         result=set(result)|set(a)
         result=list(result)
     result.sort()
+    print result
     return result
 
 def getData(keys,selection,frameRate):
@@ -38,12 +46,10 @@ def getData(keys,selection,frameRate):
             shortName = obj.split('|')[-1]
             attrs=cmds.listAttr(obj,u=True,k=True)
             
-            dictAttrs={}
-            for attr in attrs:
-                s=str(obj+'.'+attr)
-                d=cmds.getAttr(s,time=keys[index])
-                dictAttrs[attr]=d
-            objects[shortName]=dictAttrs
+
+            s=str(obj+'.'+attrs[0])
+            d=int(cmds.getAttr(s,time=keys[index]))
+            objects[shortName]=d
         dict['objects']=objects
         data.append(dict)
     jsonData=json.dumps(data)
@@ -94,9 +100,15 @@ def sendData():
   
 if isTest:
     client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    client.connect(('192.168.0.100',9696))
-    mythread=cThread()
-    mythread.start()
+    client.connect(('192.168.0.106',9696))
+    try:
+        #thread.start_new_thread(sendData(),)
+        mythread=cThread()
+        mythread.start()
+    except:
+        print "unable to start thread"
+    #mythread=cThread()
+    #mythread.start()
     print "start"
 
 
@@ -104,7 +116,8 @@ else:
     keys=getKeyframe(selection)
     
     data=getData(keys,selection,frameRate)
-            
+    print data     
+    print "write to file"
     with open(filePath,'w') as file:
-        json.dump( data, file, indent=4, sort_keys=True)
+        file.write(data)
     
