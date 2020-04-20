@@ -35,86 +35,34 @@ String StringBuffer;
 byte bytesRecvd = 0;
 JSONVar jsonData;
 int angle = 0;
-
 void parseData() {
 	Serial.print("input: ");
 	Serial.println(StringBuffer);
 	jsonData = JSON.parse(StringBuffer);
 	Serial.print("json data: ");
 	Serial.println(jsonData);
-
-	JSONVar k = jsonData[0]["objects"].keys();
-  Serial.println(jsonData.length());
-  Serial.println(jsonData[0]["objects"]["LB1"]);
-	for (int t = 0; t < jsonData.length(); t++) {
-		for (int i = 0; i < k.length(); i++) {
-
-			String servo = JSON.stringify(k[i]);
-			Serial.print("servo: ");
-			Serial.println(servo);
-			angle = jsonData[t]["objects"][k[i]];
-			Serial.print("angle: ");
-			Serial.println(angle);
-			doAction(servo, angle);
-		}
-		//delay for movement
-		delay(620);
-    if(t==jsonData.length()-1){
-      t=-1;
-    }
-	}
 }
 
-void doAction(String servo, int angle) {
-	if (servo == "\"LF1\"") {
-		angle = 90 - angle + LF1Offset;
-		LF1.write(angle);
-		Serial.println("LF1");
-		Serial.println(angle);
-	}
-	else if (servo == "\"LF2\"") {
-		angle = 90 + angle + LF2Offset;
-		LF2.write(angle);
-		Serial.println("LF2");
-		Serial.println(angle);
-	}
-	else if (servo == "\"RF1\"") {
-		angle = 90 - angle + RF1Offset;
-		RF1.write(angle);
-		Serial.println("RF1");
-		Serial.println(angle);
-	}
-	else if (servo == "\"RF2\"") {
-		angle = 90 + angle + RF2Offset;
-		RF2.write(angle);
-	}
-	else if (servo == "\"LB1\"") {
-		angle = 90 - angle + LB1Offset;
-		LB1.write(angle);
-	}
-	else if (servo == "\"LB2\"") {
-		angle = 90 - angle + LB2Offset;
-		LB2.write(angle);
-	}
-	else if (servo == "\"RB1\"") {
-		angle = 90 - angle + RB1Offset;
-		RB1.write(angle);
-	}
-	else if (servo == "\"RB2\"") {
-		angle = 90 - angle + RB2Offset;
-		RB2.write(angle);
-	}
-	else if (servo == "\"HEAD\"") {
-		//angle = 90 - angle+HEADOffset;
-		HEAD.write(90 - angle + HEADOffset);
-		Serial.println("LF1");
-		Serial.println(90 - angle + HEADOffset);
-	}
-	else {
-		Serial.println("not find servo name");
-	}
-
-
+void doAction(JSONVar AngleData) {
+  Serial.println("doaction");  
+  int t=int(AngleData["time"]);
+  int rate=1000/int(AngleData["frameRate"]);
+  for(int i=0;i<t;i++){
+    LF1.write(90 - int(AngleData["LF1"][i]) + LF1Offset);
+    Serial.print("i: ");
+    Serial.println(i);
+    Serial.print("LF1: ");
+    Serial.println(90 - int(AngleData["LF1"][i]) + LF1Offset);
+    LF2.write(90 + int(AngleData["LF2"][i]) + LF2Offset);
+    RF1.write(90 - int(AngleData["RF1"][i]) + RF1Offset);
+    RF2.write(90 + int(AngleData["RF2"][i]) + RF2Offset);
+    LB1.write(90 - int(AngleData["LB1"][i]) + LB1Offset);
+    LB2.write(90 - int(AngleData["LB2"][i]) + LB2Offset);
+    RB1.write(90 - int(AngleData["RB1"][i]) + RB1Offset);
+    RB2.write(90 - int(AngleData["RB2"][i]) + RB2Offset);
+    HEAD.write(90 - int(AngleData["HEAD"][i]) + HEADOffset);
+    delay(rate);
+  }
 }
 
 void readFile(fs::FS &fs, const char * path){
@@ -185,16 +133,5 @@ readFile(SPIFFS, path);
 }
 int pos = 0;
 void loop() {
-  // put your main code here, to run repeatedly:
-	
-
-	//for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
-	//	// in steps of 1 degree
-	//	HEAD.write(pos);    // tell servo to go to position in variable 'pos'
-	//	delay(15);             // waits 15ms for the servo to reach the position
-	//}
-	//for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
-	//	HEAD.write(pos);    // tell servo to go to position in variable 'pos'
-	//	delay(15);             // waits 15ms for the servo to reach the position
-	//}
+doAction(jsonData);
 }

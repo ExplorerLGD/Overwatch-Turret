@@ -55,6 +55,22 @@ def getData(keys,selection,frameRate):
     jsonData=json.dumps(data)
     return jsonData
 
+def getFrameData(selection):
+    data={}
+    for obj in selection:
+        angles=[]
+        shortName = obj.split('|')[-1]
+        attrs=cmds.listAttr(obj,u=True,k=True)
+        s=str(obj+'.'+attrs[0])
+        for index in range(times[0],times[1]+1):
+            d=int(cmds.getAttr(s,time=index))
+            angles.append(d)
+        data[shortName]=angles
+    data["time"]=times[1]-times[0]+1
+    data["frameRate"]=frameRate
+    jsonData=json.dumps(data)
+    return jsonData
+
 class cThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -115,7 +131,8 @@ if isTest:
 else:                
     keys=getKeyframe(selection)
     
-    data=getData(keys,selection,frameRate)
+    data=getFrameData(selection)
+    #data=getData(keys,selection,frameRate)
     print data     
     print "write to file"
     with open(filePath,'w') as file:
