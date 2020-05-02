@@ -10,13 +10,13 @@
 //#include <Servo.h>
 
 int HEADOffset = 0;
-int LF1Offset = -8;
-int LF2Offset = 0;
-int RF1Offset = 0;
+int LF1Offset = 0;
+int LF2Offset = 6;
+int RF1Offset =-7;
 int RF2Offset = 0;
 int LB1Offset = 0;
-int LB2Offset = 0;
-int RB1Offset =0;
+int LB2Offset = -2;
+int RB1Offset =-4;
 int RB2Offset = 0;
 
 const char* ssid = "FAST_513E";
@@ -72,15 +72,15 @@ void setup() {
 	//RB2.attach(15, COUNT_LOW, COUNT_HIGH);
 
 	//esp32
-  HEAD.attach(15, COUNT_LOW, COUNT_HIGH);
-  LF1.attach(2, COUNT_LOW, COUNT_HIGH);
-  LF2.attach(4, COUNT_LOW, COUNT_HIGH);
-  RF1.attach(5, COUNT_LOW, COUNT_HIGH);
-  RF2.attach(18, COUNT_LOW, COUNT_HIGH);
+  HEAD.attach(25, COUNT_LOW, COUNT_HIGH);
+  LF1.attach(23, COUNT_LOW, COUNT_HIGH);
+  LF2.attach(22, COUNT_LOW, COUNT_HIGH);
+  RF1.attach(32, COUNT_LOW, COUNT_HIGH);
+  RF2.attach(33, COUNT_LOW, COUNT_HIGH);
   LB1.attach(19, COUNT_LOW, COUNT_HIGH);
-  LB2.attach(21, COUNT_LOW, COUNT_HIGH);
-  RB1.attach(22, COUNT_LOW, COUNT_HIGH);
-  RB2.attach(23, COUNT_LOW, COUNT_HIGH);
+  LB2.attach(18, COUNT_LOW, COUNT_HIGH);
+  RB1.attach(26, COUNT_LOW, COUNT_HIGH);
+  RB2.attach(27, COUNT_LOW, COUNT_HIGH);
 
 	Serial.println();
 
@@ -174,7 +174,7 @@ void doAction(String servo,int angle) {
 		Serial.println(angle);
 	}
 	else if (servo == "\"LF2\""){
-		angle = 90 - angle+LF2Offset;
+		angle = 90 + angle+LF2Offset;
 		LF2.write(angle);
 		Serial.println("LF2");
 		Serial.println(angle);
@@ -186,7 +186,7 @@ void doAction(String servo,int angle) {
 		Serial.println(angle);
 	}
 	else if (servo == "\"RF2\"") {
-		angle = 90 - angle+RF2Offset;
+		angle = 90 + angle+RF2Offset;
 		RF2.write(angle);
 	}
 	else if (servo == "\"LB1\"") {
