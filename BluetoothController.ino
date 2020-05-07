@@ -5,7 +5,8 @@
 #include "FS.h"
 #include "SPIFFS.h"
 #include <Arduino_JSON.h>
-#include <ESP32Servo.h>
+#include <Wire.h>
+#include <Adafruit_PWMServoDriver.h>
 
 
 int HEADOffset = 0;
@@ -27,21 +28,29 @@ JSONVar leftData;
 JSONVar rightData;
 String action="S";
 
-
-Servo HEAD;
-Servo LF1;
-Servo LF2;
-Servo RF1;
-Servo RF2;
-Servo LB1;
-Servo LB2;
-Servo RB1;
-Servo RB2;
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
+uint8_t HEAD=4;
+//uint8_t HEAD = 8;
+uint8_t LF1=15;
+uint8_t LF2=14;
+uint8_t RF1=3;
+uint8_t RF2=2;
+uint8_t LB1=13;
+uint8_t LB2=12;
+uint8_t RB1=1;
+uint8_t RB2=0;
+double pulselength;
 
 BLECharacteristic *pCharacteristic;
 bool deviceConnected = false;
 char BLEbuf[32] = { 0 };
 uint32_t cnt = 0;
+
+#define SERVOMIN  102 // This is the 'minimum' pulse length count (out of 4096)
+#define SERVOMAX  512 // This is the 'maximum' pulse length count (out of 4096)
+//#define USMIN  600 // This is the rounded 'minimum' microsecond length based on the minimum pulse of 150
+//#define USMAX  2400 // This is the rounded 'maximum' microsecond length based on the maximum pulse of 600
+#define SERVO_FREQ 50 // Analog servos run at ~50 Hz updates
 
 #define COUNT_LOW 500
 #define COUNT_HIGH 2400
@@ -134,21 +143,30 @@ void doAction(JSONVar AngleData) {
 	int t = int(AngleData["time"]);
 	int rate = 1000 / int(AngleData["frameRate"]);
 	for (int i = 0; i < t; i++) {
-		LF1.write(90 - int(AngleData["LF1"][i]) + LF1Offset);
-		//Serial.print("i: ");
-		//Serial.println(i);
-		//Serial.print("LF1: ");
-		//Serial.println(90 - int(AngleData["LF1"][i]) + LF1Offset);
-		LF2.write(90 + int(AngleData["LF2"][i]) + LF2Offset);
-		RF1.write(90 - int(AngleData["RF1"][i]) + RF1Offset);
-		RF2.write(90 + int(AngleData["RF2"][i]) + RF2Offset);
-		LB1.write(90 - int(AngleData["LB1"][i]) + LB1Offset);
-		LB2.write(90 - int(AngleData["LB2"][i]) + LB2Offset);
-		RB1.write(90 - int(AngleData["RB1"][i]) + RB1Offset);
-		RB2.write(90 - int(AngleData["RB2"][i]) + RB2Offset);
-		//HEAD.write(90 - int(AngleData["HEAD"][i]) + HEADOffset);
+		pulselength = map(90 - int(AngleData["LF1"][i]) + LF1Offset, 0, 180, SERVOMIN, SERVOMAX);
+		pwm.setPWM(LF1, 0, pulselength);
+		pulselength = map(90 + int(AngleData["LF2"][i]) + LF2Offset, 0, 180, SERVOMIN, SERVOMAX);
+		pwm.setPWM(LF2, 0, pulselength);
+		pulselength = map(90 - int(AngleData["RF1"][i]) + RF1Offset, 0, 180, SERVOMIN, SERVOMAX);
+		pwm.setPWM(RF1, 0, pulselength);
+		pulselength = map(90 + int(AngleData["RF2"][i]) + RF2Offset, 0, 180, SERVOMIN, SERVOMAX);
+		pwm.setPWM(RF2, 0, pulselength);
+		pulselength = map(90 - int(AngleData["LB1"][i]) + LB1Offset, 0, 180, SERVOMIN, SERVOMAX);
+		pwm.setPWM(LB1, 0, pulselength);
+		pulselength = map(90 - int(AngleData["LB2"][i]) + LB2Offset, 0, 180, SERVOMIN, SERVOMAX);
+		pwm.setPWM(LB2, 0, pulselength);
+		pulselength = map(90 - int(AngleData["RB1"][i]) + RB1Offset, 0, 180, SERVOMIN, SERVOMAX);
+		pwm.setPWM(RB1, 0, pulselength);
+		pulselength = map(90 - int(AngleData["RB2"][i]) + RB2Offset, 0, 180, SERVOMIN, SERVOMAX);
+		pwm.setPWM(RB2, 0, pulselength);
+
 		delay(rate);
 	}
+}
+
+void servoWrite(uint8_t servo, int angle) {
+	pulselength = map(angle, 0, 180, SERVOMIN, SERVOMAX);
+	pwm.setPWM(servo, 0, pulselength);
 }
 void setup() {
   Serial.begin(115200);
@@ -179,26 +197,6 @@ void setup() {
   pServer->getAdvertising()->start();
   Serial.println("Waiting a client connection to notify...");
 
-  HEAD.setPeriodHertz(50);
-  LF1.setPeriodHertz(50);
-  LF2.setPeriodHertz(50);
-  RF1.setPeriodHertz(50);
-  RF2.setPeriodHertz(50);
-  LB1.setPeriodHertz(50);
-  LB2.setPeriodHertz(50);
-  RB1.setPeriodHertz(50);
-  RB2.setPeriodHertz(50);
-
-  HEAD.attach(25, COUNT_LOW, COUNT_HIGH);
-  LF1.attach(23, COUNT_LOW, COUNT_HIGH);
-  LF2.attach(22, COUNT_LOW, COUNT_HIGH);
-  RF1.attach(32, COUNT_LOW, COUNT_HIGH);
-  RF2.attach(33, COUNT_LOW, COUNT_HIGH);
-  LB1.attach(19, COUNT_LOW, COUNT_HIGH);
-  LB2.attach(18, COUNT_LOW, COUNT_HIGH);
-  RB1.attach(26, COUNT_LOW, COUNT_HIGH);
-  RB2.attach(27, COUNT_LOW, COUNT_HIGH);
-
   if (!SPIFFS.begin()) {
 	  Serial.println("Card Mount Failed");
 	  return;
@@ -206,47 +204,50 @@ void setup() {
   forwardData=readFile(SPIFFS, forwardPath);
   leftData = readFile(SPIFFS, leftPath);
   rightData = readFile(SPIFFS, rightPath);
+
+  pwm.begin();
+ pwm.setPWMFreq(50);
 }
 
 int headAngle=90;
 void loop() {
 	if (action == "S") {
-		LF1.write(120  + LF1Offset);
-		LF2.write(90  + LF2Offset);
-		RF1.write(60  + RF1Offset);
-		RF2.write(90 + RF2Offset);
-		LB1.write(60  + LB1Offset);
-		LB2.write(90  + LB2Offset);
-		RB1.write(120 + RB1Offset);
-		RB2.write(90 + RB2Offset);
-		HEAD.write(90  + HEADOffset);
+		servoWrite(LF1,120  + LF1Offset);
+		servoWrite(LF2,90  + LF2Offset);
+		servoWrite(RF1,60  + RF1Offset);
+		servoWrite(RF2,90 + RF2Offset);
+		servoWrite(LB1,60  + LB1Offset);
+		servoWrite(LB2,90  + LB2Offset);
+		servoWrite(RB1,120 + RB1Offset);
+		servoWrite(RB2,90 + RB2Offset);
+		servoWrite(HEAD,90  + HEADOffset);
 	}
 	else if (action == "F") {
 		doAction(forwardData);
 	}
 	else if (action == "L") {
-		HEAD.write(45 + HEADOffset);
+		servoWrite(HEAD,45 + HEADOffset);
 		doAction(leftData);	
 	}
 	else if (action == "R") {
-		HEAD.write(135 + HEADOffset);
+		servoWrite(HEAD,135 + HEADOffset);
 		doAction(rightData);	
 	}
 	else if (action == "1") {
-		headAngle = HEAD.read();
+		//headAngle = map(pwm.getPWM(HEAD), SERVOMIN, SERVOMAX, 0, 180);
 		while (action == "1"&& headAngle <155) {
 			headAngle = headAngle + 1;
-			HEAD.write(headAngle + HEADOffset);
+			servoWrite(HEAD,headAngle + HEADOffset);
 			Serial.print("headAngle: ");
 		Serial.println(headAngle);
 			delay(20);
 		}
 	}
 	else if (action == "2") {
-		headAngle = HEAD.read();
+		//headAngle = map(pwm.getPWM(HEAD), SERVOMIN, SERVOMAX, 0, 180);
 		while (action == "2"&&headAngle > 25 ) {
 			headAngle = headAngle - 1;
-			HEAD.write(headAngle + HEADOffset);
+			servoWrite(HEAD,headAngle + HEADOffset);
 			Serial.print("headAngle: ");
 			Serial.println(headAngle);
 			delay(20);
