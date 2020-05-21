@@ -9,15 +9,19 @@
 #include <Adafruit_PWMServoDriver.h>
 
 
-int HEADOffset = 0;
+int HEADOffset = 5;
 int LF1Offset = 0;
-int LF2Offset = 6;
+//6
+int LF2Offset = 14;
 int RF1Offset =-7;
-int RF2Offset = 0;
+//0
+int RF2Offset = 8;
 int LB1Offset = 0;
-int LB2Offset = -2;
+//-2
+int LB2Offset = 6;
 int RB1Offset =-4;
-int RB2Offset = 0;
+//0
+int RB2Offset = -3;
 
 const char *forwardPath = "/forward.txt";
 const char *leftPath = "/left.txt";
@@ -226,11 +230,11 @@ void loop() {
 		doAction(forwardData);
 	}
 	else if (action == "L") {
-		servoWrite(HEAD,45 + HEADOffset);
+		servoWrite(HEAD,135 + HEADOffset);
 		doAction(leftData);	
 	}
 	else if (action == "R") {
-		servoWrite(HEAD,135 + HEADOffset);
+		servoWrite(HEAD,45 + HEADOffset);
 		doAction(rightData);	
 	}
 	else if (action == "1") {
