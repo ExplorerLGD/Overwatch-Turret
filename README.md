@@ -22,7 +22,8 @@ parts：
   servo:sg90  
 
 --------------------------------------------------------------------------  
-https://www.bilibili.com/video/BV1L5411s7uX
+https://www.bilibili.com/video/BV1L5411s7uX  
+https://www.thingiverse.com/thing:4381621  
 1.BluetoothController.ino   
   该文件是最终的蓝牙控制程序.  
 2.MCU.ino  
