@@ -6,19 +6,23 @@
 
  #define TIMER_WIDTH 16
 #include <ESP32Servo.h>
+#include <WiFi.h>
 //#include <Servo.h>
 
 int HEADOffset = 0;
-int LF1Offset = -8;
-int LF2Offset = 0;
-int RF1Offset = 0;
+int LF1Offset = 0;
+int LF2Offset = 6;
+int RF1Offset =-7;
 int RF2Offset = 0;
 int LB1Offset = 0;
-int LB2Offset = 0;
-int RB1Offset = 85;
+int LB2Offset = -2;
+int RB1Offset =-4;
 int RB2Offset = 0;
 
-
+const char* ssid = "FAST_513E";
+const char* password = "";
+const uint16_t port = 9696;
+WiFiServer wifiServer(port);
 
  Servo HEAD;
  Servo LF1;
@@ -30,10 +34,21 @@ int RB2Offset = 0;
  Servo RB1;
  Servo RB2;
  
-
 void setup() {
 	Serial.begin(115200);
+	delay(1000);
 
+	WiFi.begin(ssid, password);
+
+	while (WiFi.status() != WL_CONNECTED) {
+		delay(1000);
+		Serial.println("Connecting to WiFi..");
+	}
+
+	Serial.println("Connected to the WiFi network");
+	Serial.println(WiFi.localIP());
+
+	wifiServer.begin();
 
 	HEAD.setPeriodHertz(50);
 	LF1.setPeriodHertz(50);
@@ -57,15 +72,15 @@ void setup() {
 	//RB2.attach(15, COUNT_LOW, COUNT_HIGH);
 
 	//esp32
-  HEAD.attach(15, COUNT_LOW, COUNT_HIGH);
-  LF1.attach(2, COUNT_LOW, COUNT_HIGH);
-  LF2.attach(4, COUNT_LOW, COUNT_HIGH);
-  RF1.attach(5, COUNT_LOW, COUNT_HIGH);
-  RF2.attach(18, COUNT_LOW, COUNT_HIGH);
+  HEAD.attach(25, COUNT_LOW, COUNT_HIGH);
+  LF1.attach(23, COUNT_LOW, COUNT_HIGH);
+  LF2.attach(22, COUNT_LOW, COUNT_HIGH);
+  RF1.attach(32, COUNT_LOW, COUNT_HIGH);
+  RF2.attach(33, COUNT_LOW, COUNT_HIGH);
   LB1.attach(19, COUNT_LOW, COUNT_HIGH);
-  LB2.attach(21, COUNT_LOW, COUNT_HIGH);
-  RB1.attach(22, COUNT_LOW, COUNT_HIGH);
-  RB2.attach(23, COUNT_LOW, COUNT_HIGH);
+  LB2.attach(18, COUNT_LOW, COUNT_HIGH);
+  RB1.attach(26, COUNT_LOW, COUNT_HIGH);
+  RB2.attach(27, COUNT_LOW, COUNT_HIGH);
 
 	Serial.println();
 
@@ -74,9 +89,9 @@ void setup() {
 JSONVar jsonData;
 //int ret = 0;
 
-char inByte[20000];
-//String inByte="";
-const byte buffSize = 400;
+
+//400
+const byte buffSize =2000;
 char inputBuffer[buffSize];
 const char startMarker = '<';
 const char endMarker = '>';
@@ -85,25 +100,43 @@ boolean readInProgress = false;
 boolean newDataFromPC = false;
 
 void loop() {
-	while (Serial.available() > 0)
-	{
-		char x = Serial.read();
-		if (x == endMarker) {
-			readInProgress = false;
-			newDataFromPC = true;
-			inputBuffer[bytesRecvd] = 0;
-			parseData();
-		}
-		if (readInProgress) {
-			inputBuffer[bytesRecvd] = x;
-			bytesRecvd++;
-			if (bytesRecvd == buffSize) {
-				bytesRecvd = buffSize - 1;
+	WiFiClient client = wifiServer.available();
+	if (client) {
+		//Serial.println("client ok");
+		while (client.connected()) {
+			//Serial.println("connected() ok");
+			while (client.available() > 0) {
+				char x = client.read();
+				if (x == startMarker) {
+					client.readBytesUntil(endMarker, inputBuffer, buffSize);
+					parseData();
+					//client.flush();
+					//memset(inputBuffer, 0, buffSize);
+				}
+
+				//Serial.println("available() ok");
+				//char x = client.read();
+				//if (x == endMarker) {
+				//	readInProgress = false;
+				//	newDataFromPC = true;
+				//	inputBuffer[bytesRecvd] = 0;
+				//	parseData();
+				//	//reset
+				//	client.flush();
+				//	memset(inputBuffer, 0, buffSize);
+				//}
+				//if (readInProgress) {
+				//	inputBuffer[bytesRecvd] = x;
+				//	bytesRecvd++;
+				//	if (bytesRecvd == buffSize) {
+				//		bytesRecvd = buffSize - 1;
+				//	}
+				//}
+				//if (x == startMarker) {
+				//	bytesRecvd = 0;
+				//	readInProgress = true;
+				//}
 			}
-		}
-		if (x == startMarker) {
-			bytesRecvd = 0;
-			readInProgress = true;
 		}
 	}
 }
@@ -141,7 +174,7 @@ void doAction(String servo,int angle) {
 		Serial.println(angle);
 	}
 	else if (servo == "\"LF2\""){
-		angle = 90 - angle+LF2Offset;
+		angle = 90 + angle+LF2Offset;
 		LF2.write(angle);
 		Serial.println("LF2");
 		Serial.println(angle);
@@ -153,7 +186,7 @@ void doAction(String servo,int angle) {
 		Serial.println(angle);
 	}
 	else if (servo == "\"RF2\"") {
-		angle = 90 - angle+RF2Offset;
+		angle = 90 + angle+RF2Offset;
 		RF2.write(angle);
 	}
 	else if (servo == "\"LB1\"") {
